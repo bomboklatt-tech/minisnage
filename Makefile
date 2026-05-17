@@ -1,0 +1,45 @@
+.PHONY: vm rpi4 rpi5 rockpro64 all run-vm update check clean help shell
+
+NOM := nix run --inputs-from . 'nixpkgs\#nix-output-monitor' --
+
+help:
+	@echo "Targets:"
+	@echo "  make vm         - build VM qcow2 for the host arch (via nom)"
+	@echo "  make rpi4       - build Raspberry Pi 4 SD image (via nom)"
+	@echo "  make rpi5       - build Raspberry Pi 5 SD image (via nom)"
+	@echo "  make rockpro64  - build RockPro64 SD image (via nom)"
+	@echo "  make all        - build all four"
+	@echo "  make run-vm     - boot the VM in QEMU (arch-aware, includes UEFI firmware)"
+	@echo "  make shell      - enter devshell (nom, qemu)"
+	@echo "  make check      - nix flake check"
+	@echo "  make update     - nix flake update"
+	@echo "  make clean      - remove ./result symlinks"
+
+vm:
+	$(NOM) build .#vm
+
+rpi4:
+	$(NOM) build .#rpi4
+
+rpi5:
+	$(NOM) build .#rpi5
+
+rockpro64:
+	$(NOM) build .#rockpro64
+
+all: vm rpi4 rpi5 rockpro64
+
+run-vm: vm
+	nix run .#run-vm
+
+shell:
+	nix develop
+
+check:
+	nix flake check
+
+update:
+	nix flake update
+
+clean:
+	rm -f result result-*
