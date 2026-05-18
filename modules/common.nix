@@ -5,6 +5,7 @@
     ./minimization.nix
     ./network.nix
     ./kiosk.nix
+    ./debug.nix
   ];
 
   # Apply local package overlay so pkgs.hello-kiosk exists.

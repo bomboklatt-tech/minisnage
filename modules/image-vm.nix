@@ -17,6 +17,16 @@ in
   boot.bootspec.enable = true;
   boot.uki.name = "mininix";
 
+  # aarch64 EFI stub requires the kernel section to be 64K-aligned within
+  # the UKI; the ukify default (4K) trips "kernel not aligned on 64k boundary".
+  # x86_64 is happy with the default.
+  boot.uki.settings = lib.mkIf pkgs.stdenv.hostPlatform.isAarch64 {
+    UKI.SectionAlign = 65536;
+  };
+
+  # squashfs must be loaded in initrd before /nix/store is mounted.
+  boot.initrd.kernelModules = [ "squashfs" ];
+
   image.repart = {
     name = "mininix-vm";
     partitions = {
@@ -36,6 +46,11 @@ in
       };
       "20-store" = {
         storePaths = [ config.system.build.toplevel ];
+        # Mounted at /nix/store; store paths sit at "/" inside the squashfs
+        # so the in-store layout matches /nix/store/<hash> post-mount.
+        # Without this, default "/nix/store" produces /nix/store/nix/store/<hash>
+        # and the cmdline init= path fails to canonicalize after switch_root.
+        nixStorePrefix = "/";
         repartConfig = {
           Format = "squashfs";
           Label = "nix-store";
@@ -72,18 +87,21 @@ in
     options = [ "mode=0755" ];
   };
 
+  # by-partlabel (GPT partition name) instead of by-label (FS label):
+  # FAT uppercases its FS label, squashfs has none, and the per-partition
+  # GPT name is set deterministically by systemd-repart.
   fileSystems."/boot" = {
-    device = "/dev/disk/by-label/boot";
+    device = "/dev/disk/by-partlabel/boot";
     fsType = "vfat";
   };
 
   fileSystems."/var" = {
-    device = "/dev/disk/by-label/var";
+    device = "/dev/disk/by-partlabel/var";
     fsType = "ext4";
   };
 
   fileSystems."/home" = {
-    device = "/dev/disk/by-label/home";
+    device = "/dev/disk/by-partlabel/home";
     fsType = "ext4";
   };
 }

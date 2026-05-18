@@ -57,6 +57,8 @@
                then cfg.system.build.image
                else cfg.system.build.sdImage;
 
+          vmImage = buildOne "vm" hosts.vm;
+
           # Linux pkgs matching the VM's arch - used to obtain a firmware
           # file (AAVMF_CODE.fd / OVMF_CODE.fd). The .fd is data read by
           # qemu, so it doesn't matter that pkgs is for a different host.
@@ -67,20 +69,34 @@
           qemuBin = if isAarch64VM then "qemu-system-aarch64" else "qemu-system-x86_64";
           qemuArchArgs = if isAarch64VM then "-machine virt -cpu host" else "";
           qemuAccel = if pkgs.stdenv.hostPlatform.isDarwin then "-accel hvf" else "-enable-kvm";
+          qemuDisplay = if pkgs.stdenv.hostPlatform.isDarwin then "cocoa" else "gtk";
 
           runVmScript = pkgs.writeShellApplication {
             name = "run-vm";
-            runtimeInputs = [ pkgs.qemu pkgs.findutils ];
+            runtimeInputs = [ pkgs.qemu pkgs.findutils pkgs.coreutils ];
             text = ''
-              QCOW=$(find result -name '*.qcow2' | head -1)
-              if [ -z "$QCOW" ]; then
-                echo "No qcow2 found in result/. Run 'make vm' first." >&2
+              IMG=$(find ${vmImage} -name '*.raw' | head -1)
+              if [ -z "$IMG" ]; then
+                echo "No .raw image found in ${vmImage}" >&2
                 exit 1
               fi
-              exec ${qemuBin} -m 1024 ${qemuArchArgs} ${qemuAccel} \
+
+              # The raw image is sized exactly to its partitions; systemd-repart
+              # needs free space at the end of the disk to create /var and /home
+              # at first boot. We wrap it in a 4G qcow2 overlay so the source raw
+              # in the store stays read-only and the guest sees a larger disk.
+              # State is ephemeral - the overlay is deleted on exit.
+              OVERLAY=$(mktemp -t run-vm.XXXXXX.qcow2)
+              trap 'rm -f "$OVERLAY"' EXIT
+              qemu-img create -q -f qcow2 -F raw -b "$IMG" "$OVERLAY" 4G > /dev/null
+
+              ${qemuBin} -m 1024 ${qemuArchArgs} ${qemuAccel} \
                 -drive if=pflash,format=raw,readonly=on,file=${firmwareFile} \
-                -drive file="$QCOW",if=virtio,format=qcow2 \
-                -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+                -drive file="$OVERLAY",if=virtio,format=qcow2 \
+                -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22 \
+                -device virtio-gpu-pci \
+                -device qemu-xhci -device usb-kbd -device usb-tablet \
+                -display ${qemuDisplay}
             '';
           };
         in {

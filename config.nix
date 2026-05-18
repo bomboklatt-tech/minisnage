@@ -25,4 +25,8 @@
     user = "kiosk";
     restart = "always"; # one of: "always", "on-failure", "no"
   };
+
+  # Debug mode: root password "root", PermitRootLogin yes, password auth.
+  # Set to false for production images.
+  debug = true;
 }
