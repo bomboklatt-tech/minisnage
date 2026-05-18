@@ -19,6 +19,7 @@ let
 in
 inputs.nixpkgs.lib.nixosSystem {
   modules = [
+    ../config.nix
     hostModule
     ../modules/common.nix
     {
@@ -27,7 +28,6 @@ inputs.nixpkgs.lib.nixosSystem {
     }
   ];
   specialArgs = {
-    userConfig = import ../config.nix;
     inherit inputs;
   };
 }

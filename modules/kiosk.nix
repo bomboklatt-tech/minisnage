@@ -1,33 +1,58 @@
-{ pkgs, lib, userConfig, ... }:
+{ pkgs, lib, config, ... }:
 
 let
-  validRestart = [ "always" "on-failure" "no" ];
-  gui = userConfig.kiosk.gui;
+  cfg = config.mininix.kiosk;
+
+  # Resolve the kiosk command from `command` (if set) or `package`.
+  # null = no kiosk service runs (autologin path only).
+  resolvedCommand =
+    if cfg.command != [ ] then cfg.command
+    else if cfg.package != null then
+      let
+        bin =
+          cfg.package.meta.mainProgram or
+          cfg.package.pname or
+          (throw ''
+            mininix.kiosk.package has no `meta.mainProgram` or `pname`.
+            Set `mininix.kiosk.command` explicitly with the binary path
+            and any arguments.
+          '');
+      in [ "${cfg.package}/bin/${bin}" ]
+    else null;
+
+  hasKiosk = resolvedCommand != null;
+
+  # Single wrapper used by both the console service and cage. Carries
+  # runtimeInputs on PATH so the kiosk command can shell out to extras.
+  kioskProgram = pkgs.writeShellApplication {
+    name = "mininix-kiosk";
+    runtimeInputs = cfg.runtimeInputs;
+    text = "exec ${lib.escapeShellArgs (if hasKiosk then resolvedCommand else [ "true" ])}";
+  };
+
+  kioskBin = "${kioskProgram}/bin/mininix-kiosk";
 in
 
-assert lib.assertOneOf "userConfig.kiosk.restart"
-  userConfig.kiosk.restart validRestart;
-
 lib.mkMerge [
-  # Shared: user, group, autologin on tty2-tty6.
+  # Shared: user + group + autologin on tty2-tty6.
   {
-    users.users.${userConfig.kiosk.user} = {
+    users.users.${cfg.user} = {
       isNormalUser = true;
-      group = userConfig.kiosk.user;
-      home = "/home/${userConfig.kiosk.user}";
+      group = cfg.user;
+      home = "/home/${cfg.user}";
       createHome = true;
       shell = pkgs.bashInteractive;
     };
-    users.groups.${userConfig.kiosk.user} = { };
+    users.groups.${cfg.user} = { };
 
-    services.getty.autologinUser = userConfig.kiosk.user;
+    services.getty.autologinUser = cfg.user;
   }
 
-  # Console kiosk: hello-kiosk grabs tty1.
-  (lib.mkIf (!gui) {
+  # Console path: kiosk service owns tty1.
+  (lib.mkIf (!cfg.gui && hasKiosk) {
     systemd.services."getty@tty1".enable = false;
 
-    systemd.services.hello-kiosk = {
+    systemd.services.kiosk = {
       description = "mininix kiosk task (console)";
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" "systemd-user-sessions.service" ];
@@ -35,9 +60,9 @@ lib.mkMerge [
       conflicts = [ "getty@tty1.service" ];
       serviceConfig = {
         Type = "idle";
-        ExecStart = "${pkgs.hello-kiosk}/bin/hello-kiosk";
-        User = userConfig.kiosk.user;
-        Restart = userConfig.kiosk.restart;
+        ExecStart = kioskBin;
+        User = cfg.user;
+        Restart = cfg.restart;
         StandardInput = "tty";
         StandardOutput = "tty";
         StandardError = "tty";
@@ -49,18 +74,17 @@ lib.mkMerge [
     };
   })
 
-  # GUI kiosk: cage (Wayland compositor) on tty1, runs hello-kiosk-gui (foot).
+  # GUI path: cage owns tty1 and spawns the kiosk program (Wayland).
   # All wayland/wlroots/foot deps only enter the closure on this path.
-  (lib.mkIf gui {
+  (lib.mkIf (cfg.gui && hasKiosk) {
     services.cage = {
       enable = true;
-      user = userConfig.kiosk.user;
-      program = "${pkgs.hello-kiosk-gui}/bin/hello-kiosk-gui";
+      user = cfg.user;
+      program = kioskBin;
     };
 
     # services.cage sets hardware.graphics = mkDefault true, but our
-    # minimization module pins it false at default priority. Force it on
-    # for this path.
+    # minimization module pins it false at default priority. Force it on.
     hardware.graphics.enable = lib.mkForce true;
   })
 ]

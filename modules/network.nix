@@ -1,4 +1,8 @@
-{ lib, userConfig, ... }:
+{ config, lib, ... }:
+
+let
+  cfg = config.mininix;
+in
 
 {
   services.openssh = {
@@ -9,16 +13,16 @@
     };
   };
 
-  users.users.root.openssh.authorizedKeys.keys = userConfig.sshAuthorizedKeys;
+  users.users.root.openssh.authorizedKeys.keys = cfg.sshAuthorizedKeys;
 
-  networking.hostName = userConfig.hostname;
+  networking.hostName = cfg.hostname;
 
   # WiFi block only emitted when at least one network is configured.
-  networking.wireless = lib.mkIf (userConfig.wifi != [ ]) {
+  networking.wireless = lib.mkIf (cfg.wifi != [ ]) {
     enable = true;
     networks = builtins.listToAttrs (map (n: {
       name = n.ssid;
       value = { psk = n.psk; };
-    }) userConfig.wifi);
+    }) cfg.wifi);
   };
 }

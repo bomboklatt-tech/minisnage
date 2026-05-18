@@ -22,6 +22,7 @@
 
           hosts = {
             vm        = { hostModule = ./hosts/vm.nix;        hostPlatform = "x86_64-linux"; };
+            vm-uboot  = { hostModule = ./hosts/vm-uboot.nix;  hostPlatform = "aarch64-linux"; };
             rpi4      = { hostModule = ./hosts/rpi4.nix;      hostPlatform = "aarch64-linux"; };
             rpi5      = { hostModule = ./hosts/rpi5.nix;      hostPlatform = "aarch64-linux"; };
             rockpro64 = { hostModule = ./hosts/rockpro64.nix; hostPlatform = "aarch64-linux"; };
@@ -46,6 +47,7 @@
 
           hosts = {
             vm        = { hostModule = ./hosts/vm.nix;        hostPlatform = vmHostPlatform; };
+            vm-uboot  = { hostModule = ./hosts/vm-uboot.nix;  hostPlatform = "aarch64-linux"; };
             rpi4      = { hostModule = ./hosts/rpi4.nix;      hostPlatform = "aarch64-linux"; };
             rpi5      = { hostModule = ./hosts/rpi5.nix;      hostPlatform = "aarch64-linux"; };
             rockpro64 = { hostModule = ./hosts/rockpro64.nix; hostPlatform = "aarch64-linux"; };
@@ -58,6 +60,7 @@
                else cfg.system.build.sdImage;
 
           vmImage = buildOne "vm" hosts.vm;
+          vmUbootImage = buildOne "vm-uboot" hosts.vm-uboot;
 
           # Linux pkgs matching the VM's arch - used to obtain a firmware
           # file (AAVMF_CODE.fd / OVMF_CODE.fd). The .fd is data read by
@@ -99,12 +102,48 @@
                 -display ${qemuDisplay}
             '';
           };
+
+          # vm-uboot: aarch64-linux guest with u-boot supplied via -bios.
+          # Mirrors the SBC boot path (u-boot -> extlinux -> kernel) so we
+          # can test that path without flashing hardware.
+          ubootPkgs = inputs.nixpkgs.legacyPackages."aarch64-linux";
+          ubootBin = "${ubootPkgs.ubootQemuAarch64}/u-boot.bin";
+
+          runVmUbootScript = pkgs.writeShellApplication {
+            name = "run-vm-uboot";
+            runtimeInputs = [ pkgs.qemu pkgs.findutils pkgs.coreutils ];
+            text = ''
+              # sdImage drops the raw .img under sd-image/; pick that (not the .zst).
+              IMG=$(find ${vmUbootImage} -name '*.img' ! -name '*.zst' | head -1)
+              if [ -z "$IMG" ]; then
+                echo "No raw .img found in ${vmUbootImage}" >&2
+                exit 1
+              fi
+
+              OVERLAY=$(mktemp -t run-vm-uboot.XXXXXX.qcow2)
+              trap 'rm -f "$OVERLAY"' EXIT
+              qemu-img create -q -f qcow2 -F raw -b "$IMG" "$OVERLAY" 4G > /dev/null
+
+              qemu-system-aarch64 -m 1024 -machine virt -cpu host ${qemuAccel} \
+                -bios ${ubootBin} \
+                -drive file="$OVERLAY",if=virtio,format=qcow2 \
+                -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22 \
+                -device virtio-gpu-pci \
+                -device qemu-xhci -device usb-kbd -device usb-tablet \
+                -display ${qemuDisplay}
+            '';
+          };
         in {
           packages = lib.mapAttrs buildOne hosts;
 
           apps.run-vm = {
             type = "app";
             program = "${runVmScript}/bin/run-vm";
+          };
+
+          apps.run-vm-uboot = {
+            type = "app";
+            program = "${runVmUbootScript}/bin/run-vm-uboot";
           };
 
           devShells.default = pkgs.mkShell {

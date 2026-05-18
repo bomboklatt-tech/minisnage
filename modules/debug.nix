@@ -1,10 +1,10 @@
-# Debug overlay - applies when config.nix sets `debug = true`.
+# Debug overlay - applies when config.mininix.debug = true.
 # Intended for VM iteration; should not be active in production images.
-{ lib, userConfig, ... }:
+{ lib, config, ... }:
 
-lib.mkIf userConfig.debug {
+lib.mkIf config.mininix.debug {
   # Drop straight into a root shell when boot fails (no password prompt
-  # from sulogin). This is what was previously hand-edited into image-vm.
+  # from sulogin).
   boot.kernelParams = [ "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1" ];
 
   # Plaintext root password "root" plus SSH password auth, so the user can

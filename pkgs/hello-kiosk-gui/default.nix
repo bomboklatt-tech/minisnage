@@ -1,11 +1,12 @@
-{ writeShellApplication, foot, neo-cowsay, coreutils }:
+{ mkGuiTerminalKiosk, neo-cowsay }:
 
-# Wayland variant of hello-kiosk: spawns a foot terminal (run under cage by
-# services.cage) and runs the cowsay loop inside it.
-writeShellApplication {
+# Default Wayland kiosk: cowsay in a foot terminal, font from cozette.
+# Demonstrates the typical use of pkgs.mkGuiTerminalKiosk.
+mkGuiTerminalKiosk {
   name = "hello-kiosk-gui";
-  runtimeInputs = [ foot neo-cowsay coreutils ];
+  runtimeInputs = [ neo-cowsay ];
   text = ''
-    exec foot -- sh -c 'cowsay "hello from mininix (wayland)"; exec sleep infinity'
+    cowsay "hello from mininix (wayland)"
+    exec sleep infinity
   '';
 }

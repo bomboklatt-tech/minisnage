@@ -1,8 +1,8 @@
-# VM-only: when userConfig.readOnlyRoot is true, mount /nix/store from
+# VM-only: when mininix.readOnlyRoot is true, mount /nix/store from
 # the squashfs partition created by image.repart.
-{ lib, userConfig, ... }:
+{ lib, config, ... }:
 
-lib.mkIf userConfig.readOnlyRoot {
+lib.mkIf config.mininix.readOnlyRoot {
   # squashfs has no filesystem-level label; use the GPT partition name
   # (PARTLABEL) instead of the typical FS label.
   fileSystems."/nix/store" = {
