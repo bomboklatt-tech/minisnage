@@ -83,6 +83,11 @@ lib.mkMerge [
       program = kioskBin;
     };
 
+    # cage opens /dev/dri/card0 (video) and uses libseat for session
+    # management. Without these groups wlroots fails with "Failed to open
+    # any DRM device" / libseat "No such device".
+    users.users.${cfg.user}.extraGroups = [ "video" "render" "input" "seat" ];
+
     # services.cage sets hardware.graphics = mkDefault true, but our
     # minimization module pins it false at default priority. Force it on.
     hardware.graphics.enable = lib.mkForce true;

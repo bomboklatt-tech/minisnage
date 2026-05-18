@@ -20,6 +20,10 @@
   boot.initrd.availableKernelModules = [
     "virtio_pci" "virtio_blk" "virtio_net" "virtio_scsi" "virtio_gpu"
   ];
+  # Force-load virtio_gpu post-boot so /dev/dri/card0 is present when cage
+  # starts. availableKernelModules is initrd-only; udev should auto-load
+  # post-boot but doesn't always under TCG-emulated PCI enumeration.
+  boot.kernelModules = [ "virtio_gpu" ];
 
   # Serial console on the virt machine.
   boot.kernelParams = [

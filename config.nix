@@ -30,14 +30,14 @@
       restart = "always"; # one of: "always", "on-failure", "no"
       # false: console (tty1) kiosk, no Wayland deps.
       # true:  Wayland kiosk via cage; pulls wlroots/foot/font into closure.
-      gui = true;
+      gui = false;
 
       # Program the kiosk runs. Swap freely:
       #   pkgs.hello-kiosk      - console cowsay (gui = false)
       #   pkgs.hello-kiosk-gui  - Wayland cowsay in foot (gui = true)
       #   any Wayland app       - e.g. pkgs.chromium for kiosk browsers
       # null + empty command = no kiosk service; autologin only.
-      package = pkgs.hello-kiosk-gui;
+      package = pkgs.hello-kiosk;
 
       # Override or extend: [ "${pkgs.htop}/bin/htop" "--no-color" ]
       command = [ ];
