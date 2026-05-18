@@ -24,6 +24,9 @@
   kiosk = {
     user = "kiosk";
     restart = "always"; # one of: "always", "on-failure", "no"
+    # false: console (tty1) kiosk via hello-kiosk
+    # true:  Wayland kiosk via cage + foot terminal (pulls in wlroots/foot)
+    gui = false;
   };
 
   # Debug mode: root password "root", PermitRootLogin yes, password auth.
