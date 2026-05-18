@@ -1,9 +1,9 @@
-{ writeShellApplication, writeText, foot, cozette, lib }:
+{ writeShellApplication, writeText, foot, cozette, fontconfig, lib }:
 
 # Helper that builds a kiosk program suitable for `mininix.kiosk.package`
 # in gui mode: spawns a terminal (default foot) running the supplied
-# shell text. Bundles the font directly so no system-wide fontconfig is
-# required.
+# shell text. Carries its own fontconfig so no system-wide fonts.* setup
+# is required - good for our minimization, which has fontconfig off.
 #
 # Currently foot-specific (writes a foot.ini); to support another
 # terminal, copy this helper and adapt the config writer.
@@ -13,17 +13,30 @@
   runtimeInputs ? [ ],
   terminal ? foot,
   font ? cozette,
-  fontFile ? "share/fonts/opentype/CozetteVector.otf",
+  # Family name as it appears in the font metadata - verify via
+  # `fc-query --format '%{family[0]}\n' <font-file>`. Foot's `font=` is a
+  # fontconfig pattern, so we match by family rather than file path
+  # (path mode is unreliable for bitmap-derived fonts).
+  fontName ? "CozetteVector",
   fontSize ? 13,
   extraTerminalArgs ? [ ],
 }:
 
 let
-  fontPath = "${font}/${fontFile}";
+  # Per-process fontconfig: pull in nixpkgs' default config (so standard
+  # aliases work) and add the chosen font's share/fonts dir.
+  fontsConf = writeText "${name}-fonts.conf" ''
+    <?xml version="1.0"?>
+    <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+    <fontconfig>
+      <include ignore_missing="yes">${fontconfig.out}/etc/fonts/fonts.conf</include>
+      <dir>${font}/share/fonts</dir>
+    </fontconfig>
+  '';
 
   footConfig = writeText "${name}-foot.ini" ''
     [main]
-    font=${fontPath}:size=${toString fontSize}
+    font=${fontName}:size=${toString fontSize}
   '';
 
   payload = writeShellApplication {
@@ -38,6 +51,7 @@ writeShellApplication {
   name = name;
   runtimeInputs = [ terminal ];
   text = ''
+    export FONTCONFIG_FILE=${fontsConf}
     exec ${terminalBin} --config=${footConfig} ${lib.escapeShellArgs extraTerminalArgs} -- ${payload}/bin/${name}-payload
   '';
 }
