@@ -8,13 +8,15 @@ let
   conf = writeText "dosbox.conf" ''
     [sdl]
     fullscreen = on
-    output = opengl
+    output = texture
+
 
     [render]
     aspect = on
 
     [cpu]
     cycles = max
+    core = dynamic
 
     [dosbox]
     machine = vgaonly
