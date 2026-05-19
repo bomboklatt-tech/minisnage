@@ -47,6 +47,10 @@
               hostModule = ./hosts/rockpro64.nix;
               hostPlatform = "aarch64-linux";
             };
+            orangepi-pc = {
+              hostModule = ./hosts/orangepi-pc.nix;
+              hostPlatform = "armv7l-linux";
+            };
           };
         in
         {
@@ -94,6 +98,10 @@
               hostModule = ./hosts/rockpro64.nix;
               hostPlatform = "aarch64-linux";
             };
+            orangepi-pc = {
+              hostModule = ./hosts/orangepi-pc.nix;
+              hostPlatform = "armv7l-linux";
+            };
           };
 
           # During the image-module migration hosts split between
@@ -111,6 +119,7 @@
                 "rpi4"
                 "rpi5"
                 "rockpro64"
+                "orangepi-pc"
               ];
             in
             if isRepart then cfg.system.build.imageFinal else cfg.system.build.sdImage;
