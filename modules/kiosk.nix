@@ -105,5 +105,15 @@ lib.mkMerge [
     # services.cage sets hardware.graphics = mkDefault true, but our
     # minimization module pins it false at default priority. Force it on.
     hardware.graphics.enable = lib.mkForce true;
+
+    # libseat probes seatd first, then falls back to logind. logind's
+    # TakeDevice for /dev/dri/card0 returns EBUSY when fbcon is already
+    # holding DRM master via drm_fb_helper - which happens whenever the
+    # boot path has no pre-existing framebuffer (no UEFI/efifb), so
+    # virtio_gpu's emulated fbdev becomes the primary console fb. seatd
+    # uses DRM leases instead and bypasses the master conflict, so cage
+    # gets the device cleanly. Harmless on hosts where logind would also
+    # work (vm/UEFI), so we enable it for every gui kiosk host.
+    services.seatd.enable = true;
   })
 ]

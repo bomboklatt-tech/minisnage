@@ -6,4 +6,5 @@ final: prev: {
   # Default kiosk programs
   hello-kiosk = final.callPackage ./hello-kiosk { };
   hello-kiosk-gui = final.callPackage ./hello-kiosk-gui { };
+  acidwarp = final.callPackage ./acidwarp { };
 }
