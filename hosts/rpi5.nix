@@ -1,10 +1,18 @@
-{ inputs, pkgs, ... }:
+{ inputs, lib, pkgs, ... }:
 
 {
   imports = [
     ../modules/image-sd.nix
     inputs.nixos-hardware.nixosModules.raspberry-pi-5
   ];
+
+  # sd-image.nix sets `hardware.enableAllHardware = true` which dumps a
+  # huge module list (dw-hdmi, aic79xx, mptspi, ...) into the initrd.
+  # The linux-rpi kernel doesn't carry most of those, so modules-shrunk
+  # errors trying to find them. We don't need any of that hardware
+  # support for a kiosk RPi5.
+  # hardware.enableAllHardware = lib.mkForce false;
+   boot.initrd.allowMissingModules = true;
 
   # RPi 5 boots via the EEPROM-based firmware loader (no u-boot needed).
   # The firmware partition needs RPi vendor blobs and bcm2712 DTBs.

@@ -38,7 +38,7 @@
   services.libinput.enable = false;
   services.udisks2.enable = false;
 
-  # Required by modules/image-vm.nix repart wiring, harmless on SBCs.
+  # Required for initrd-systemd-repart used by modules/image/base.nix.
   boot.initrd.systemd.enable = true;
 
   # No firewall, no storage stack we don't use.

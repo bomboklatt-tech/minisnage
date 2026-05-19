@@ -53,10 +53,16 @@
             rockpro64 = { hostModule = ./hosts/rockpro64.nix; hostPlatform = "aarch64-linux"; };
           };
 
+          # During the image-module migration hosts split between
+          # image.repart-based (cfg.system.build.imageFinal, which is the
+          # post-processed wrapper around image.repart) and the legacy
+          # sd-image. After RPi5 also migrates this collapses to
+          # imageFinal for everyone.
           buildOne = name: hostArgs:
             let cfg = (mkHost hostArgs { buildPlatform = system; }).config;
-            in if name == "vm"
-               then cfg.system.build.image
+                isRepart = builtins.elem name [ "vm" "vm-uboot" "rpi4" "rockpro64" ];
+            in if isRepart
+               then cfg.system.build.imageFinal
                else cfg.system.build.sdImage;
 
           vmImage = buildOne "vm" hosts.vm;
@@ -113,12 +119,9 @@
             name = "run-vm-uboot";
             runtimeInputs = [ pkgs.qemu pkgs.findutils pkgs.coreutils ];
             text = ''
-              # sdImage drops the raw .img under sd-image/; pick that (not the .zst).
-              # -type f: with compressImage=false the store path itself is named "*.img",
-              # so we filter directories out.
-              IMG=$(find ${vmUbootImage} -type f -name '*.img' ! -name '*.zst' | head -1)
+              IMG=$(find ${vmUbootImage} -name '*.raw' | head -1)
               if [ -z "$IMG" ]; then
-                echo "No raw .img found in ${vmUbootImage}" >&2
+                echo "No .raw image found in ${vmUbootImage}" >&2
                 exit 1
               fi
 
