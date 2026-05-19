@@ -14,7 +14,11 @@
 
   # Virtio devices exposed by qemu virt.
   boot.initrd.availableKernelModules = [
-    "virtio_pci" "virtio_blk" "virtio_net" "virtio_scsi" "virtio_gpu"
+    "virtio_pci"
+    "virtio_blk"
+    "virtio_net"
+    "virtio_scsi"
+    "virtio_gpu"
   ];
   # Force-load virtio_gpu post-boot so /dev/dri/card0 is present when cage
   # starts. availableKernelModules is initrd-only.

@@ -7,7 +7,13 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = inputs @ { self, flake-parts, nixpkgs, nixos-hardware }:
+  outputs =
+    inputs@{
+      self,
+      flake-parts,
+      nixpkgs,
+      nixos-hardware,
+    }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -21,21 +27,43 @@
           mkHost = import ./lib/mkHost.nix { inherit inputs; };
 
           hosts = {
-            vm        = { hostModule = ./hosts/vm.nix;        hostPlatform = "x86_64-linux"; };
-            vm-uboot  = { hostModule = ./hosts/vm-uboot.nix;  hostPlatform = "aarch64-linux"; };
-            rpi4      = { hostModule = ./hosts/rpi4.nix;      hostPlatform = "aarch64-linux"; };
-            rpi5      = { hostModule = ./hosts/rpi5.nix;      hostPlatform = "aarch64-linux"; };
-            rockpro64 = { hostModule = ./hosts/rockpro64.nix; hostPlatform = "aarch64-linux"; };
+            vm = {
+              hostModule = ./hosts/vm.nix;
+              hostPlatform = "x86_64-linux";
+            };
+            vm-uboot = {
+              hostModule = ./hosts/vm-uboot.nix;
+              hostPlatform = "aarch64-linux";
+            };
+            rpi4 = {
+              hostModule = ./hosts/rpi4.nix;
+              hostPlatform = "aarch64-linux";
+            };
+            rpi5 = {
+              hostModule = ./hosts/rpi5.nix;
+              hostPlatform = "aarch64-linux";
+            };
+            rockpro64 = {
+              hostModule = ./hosts/rockpro64.nix;
+              hostPlatform = "aarch64-linux";
+            };
           };
-        in {
+        in
+        {
           lib.mkHost = mkHost;
 
-          nixosConfigurations = builtins.mapAttrs
-            (_: hostArgs: mkHost hostArgs { buildPlatform = hostArgs.hostPlatform; })
-            hosts;
+          nixosConfigurations = builtins.mapAttrs (
+            _: hostArgs: mkHost hostArgs { buildPlatform = hostArgs.hostPlatform; }
+          ) hosts;
         };
 
-      perSystem = { system, pkgs, lib, ... }:
+      perSystem =
+        {
+          system,
+          pkgs,
+          lib,
+          ...
+        }:
         let
           mkHost = import ./lib/mkHost.nix { inherit inputs; };
 
@@ -46,11 +74,26 @@
           vmHostPlatform = toLinux system;
 
           hosts = {
-            vm        = { hostModule = ./hosts/vm.nix;        hostPlatform = vmHostPlatform; };
-            vm-uboot  = { hostModule = ./hosts/vm-uboot.nix;  hostPlatform = "aarch64-linux"; };
-            rpi4      = { hostModule = ./hosts/rpi4.nix;      hostPlatform = "aarch64-linux"; };
-            rpi5      = { hostModule = ./hosts/rpi5.nix;      hostPlatform = "aarch64-linux"; };
-            rockpro64 = { hostModule = ./hosts/rockpro64.nix; hostPlatform = "aarch64-linux"; };
+            vm = {
+              hostModule = ./hosts/vm.nix;
+              hostPlatform = vmHostPlatform;
+            };
+            vm-uboot = {
+              hostModule = ./hosts/vm-uboot.nix;
+              hostPlatform = "aarch64-linux";
+            };
+            rpi4 = {
+              hostModule = ./hosts/rpi4.nix;
+              hostPlatform = "aarch64-linux";
+            };
+            rpi5 = {
+              hostModule = ./hosts/rpi5.nix;
+              hostPlatform = "aarch64-linux";
+            };
+            rockpro64 = {
+              hostModule = ./hosts/rockpro64.nix;
+              hostPlatform = "aarch64-linux";
+            };
           };
 
           # During the image-module migration hosts split between
@@ -58,12 +101,18 @@
           # post-processed wrapper around image.repart) and the legacy
           # sd-image. After RPi5 also migrates this collapses to
           # imageFinal for everyone.
-          buildOne = name: hostArgs:
-            let cfg = (mkHost hostArgs { buildPlatform = system; }).config;
-                isRepart = builtins.elem name [ "vm" "vm-uboot" "rpi4" "rockpro64" ];
-            in if isRepart
-               then cfg.system.build.imageFinal
-               else cfg.system.build.sdImage;
+          buildOne =
+            name: hostArgs:
+            let
+              cfg = (mkHost hostArgs { buildPlatform = system; }).config;
+              isRepart = builtins.elem name [
+                "vm"
+                "vm-uboot"
+                "rpi4"
+                "rockpro64"
+              ];
+            in
+            if isRepart then cfg.system.build.imageFinal else cfg.system.build.sdImage;
 
           vmImage = buildOne "vm" hosts.vm;
           vmUbootImage = buildOne "vm-uboot" hosts.vm-uboot;
@@ -82,7 +131,11 @@
 
           runVmScript = pkgs.writeShellApplication {
             name = "run-vm";
-            runtimeInputs = [ pkgs.qemu pkgs.findutils pkgs.coreutils ];
+            runtimeInputs = [
+              pkgs.qemu
+              pkgs.findutils
+              pkgs.coreutils
+            ];
             text = ''
               IMG=$(find ${vmImage} -name '*.raw' | head -1)
               if [ -z "$IMG" ]; then
@@ -117,7 +170,11 @@
 
           runVmUbootScript = pkgs.writeShellApplication {
             name = "run-vm-uboot";
-            runtimeInputs = [ pkgs.qemu pkgs.findutils pkgs.coreutils ];
+            runtimeInputs = [
+              pkgs.qemu
+              pkgs.findutils
+              pkgs.coreutils
+            ];
             text = ''
               IMG=$(find ${vmUbootImage} -name '*.raw' | head -1)
               if [ -z "$IMG" ]; then
@@ -149,7 +206,8 @@
                 -display ${qemuDisplay} -serial stdio
             '';
           };
-        in {
+        in
+        {
           packages = lib.mapAttrs buildOne hosts;
 
           apps.run-vm = {

@@ -9,7 +9,11 @@
     };
 
     restart = lib.mkOption {
-      type = lib.types.enum [ "always" "on-failure" "no" ];
+      type = lib.types.enum [
+        "always"
+        "on-failure"
+        "no"
+      ];
       default = "always";
       description = "systemd Restart= value for the kiosk service.";
     };

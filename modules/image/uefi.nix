@@ -3,7 +3,12 @@
 #
 # Imports modules/image/base.nix for the cross-cutting bits (nix-store
 # squashfs, tmpfs root, repart-grown var/home).
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 
 let
   efiArch = pkgs.stdenv.hostPlatform.efiArch;

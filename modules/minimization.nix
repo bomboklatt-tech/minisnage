@@ -45,7 +45,12 @@
   networking.firewall.enable = false;
   services.lvm.enable = false;
   boot.swraid.enable = false;
-  boot.supportedFilesystems = lib.mkForce [ "ext4" "vfat" "squashfs" "tmpfs" ];
+  boot.supportedFilesystems = lib.mkForce [
+    "ext4"
+    "vfat"
+    "squashfs"
+    "tmpfs"
+  ];
 
   # No default editor.
   programs.nano.enable = false;

@@ -1,4 +1,9 @@
-{ inputs, lib, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
@@ -9,8 +14,8 @@
   image.repart.name = "mininix-rockpro64";
 
   # Required for ARM trusted firmware blob (rk3399 secure boot stub).
-  nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [ "arm-trusted-firmware-rk3399" ];
+  nixpkgs.config.allowUnfreePredicate =
+    pkg: builtins.elem (lib.getName pkg) [ "arm-trusted-firmware-rk3399" ];
 
   # nixos-hardware enables fancontrol by default; the lm-sensors
   # fancontrol binary is a perl script, which the perlless profile bans.
@@ -51,7 +56,7 @@
     dd if=${pkgs.ubootRockPro64}/u-boot.itb of="$raw" seek=16384 conv=notrunc
   '';
 
-  # eMMC on RockPro64 typically presents as /dev/mmcblk1, microSD as
-  # /dev/mmcblk0. Default to microSD.
-  boot.initrd.systemd.repart.device = "/dev/mmcblk0";
+  # eMMC = /dev/mmcblk0 on RockPro64
+  # sd = /dev/mmcblk1
+  boot.initrd.systemd.repart.device = "/dev/mmcblk1";
 }

@@ -20,9 +20,13 @@ in
   # WiFi block only emitted when at least one network is configured.
   networking.wireless = lib.mkIf (cfg.wifi != [ ]) {
     enable = true;
-    networks = builtins.listToAttrs (map (n: {
-      name = n.ssid;
-      value = { psk = n.psk; };
-    }) cfg.wifi);
+    networks = builtins.listToAttrs (
+      map (n: {
+        name = n.ssid;
+        value = {
+          psk = n.psk;
+        };
+      }) cfg.wifi
+    );
   };
 }

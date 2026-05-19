@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 let
   cfg = config.mininix.kiosk;
@@ -6,19 +11,20 @@ let
   # Resolve the kiosk command from `command` (if set) or `package`.
   # null = no kiosk service runs (autologin path only).
   resolvedCommand =
-    if cfg.command != [ ] then cfg.command
+    if cfg.command != [ ] then
+      cfg.command
     else if cfg.package != null then
       let
         bin =
-          cfg.package.meta.mainProgram or
-          cfg.package.pname or
-          (throw ''
+          cfg.package.meta.mainProgram or cfg.package.pname or (throw ''
             mininix.kiosk.package has no `meta.mainProgram` or `pname`.
             Set `mininix.kiosk.command` explicitly with the binary path
             and any arguments.
           '');
-      in [ "${cfg.package}/bin/${bin}" ]
-    else null;
+      in
+      [ "${cfg.package}/bin/${bin}" ]
+    else
+      null;
 
   hasKiosk = resolvedCommand != null;
 
@@ -55,7 +61,10 @@ lib.mkMerge [
     systemd.services.kiosk = {
       description = "mininix kiosk task (console)";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" "systemd-user-sessions.service" ];
+      after = [
+        "network-online.target"
+        "systemd-user-sessions.service"
+      ];
       wants = [ "network-online.target" ];
       conflicts = [ "getty@tty1.service" ];
       serviceConfig = {
@@ -86,7 +95,12 @@ lib.mkMerge [
     # cage opens /dev/dri/card0 (video) and uses libseat for session
     # management. Without these groups wlroots fails with "Failed to open
     # any DRM device" / libseat "No such device".
-    users.users.${cfg.user}.extraGroups = [ "video" "render" "input" "seat" ];
+    users.users.${cfg.user}.extraGroups = [
+      "video"
+      "render"
+      "input"
+      "seat"
+    ];
 
     # services.cage sets hardware.graphics = mkDefault true, but our
     # minimization module pins it false at default priority. Force it on.

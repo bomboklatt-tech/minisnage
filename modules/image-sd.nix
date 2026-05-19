@@ -1,7 +1,12 @@
 # Shared SD-image config for aarch64 SBCs.
 # Per-board firmware bits (populateFirmwareCommands) live in the host
 # files because they vary heavily by SoC.
-{ config, lib, modulesPath, ... }:
+{
+  config,
+  lib,
+  modulesPath,
+  ...
+}:
 
 {
   imports = [

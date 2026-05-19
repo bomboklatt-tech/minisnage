@@ -5,7 +5,13 @@
 # repart-grown /var + /home that come up on first boot. The bootloader
 # variants (uefi.nix, extlinux.nix) layer on top of this to add the boot
 # partition.
-{ config, lib, pkgs, modulesPath, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}:
 
 let
   postProcess = config.mininix.image.postProcess;
@@ -82,7 +88,10 @@ in
     device = "/dev/disk/by-partlabel/nix-store";
     fsType = "squashfs";
     neededForBoot = true;
-    options = [ "loop" "ro" ];
+    options = [
+      "loop"
+      "ro"
+    ];
   };
 
   fileSystems."/var" = {

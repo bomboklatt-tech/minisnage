@@ -7,7 +7,12 @@
 # in the host file. NixOS module merge composes them.
 #
 # Imports modules/image/base.nix for the cross-cutting bits.
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 
 let
   # Pre-bake the extlinux directory tree that

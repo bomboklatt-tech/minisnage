@@ -1,4 +1,11 @@
-{ writeShellApplication, writeText, foot, cozette, fontconfig, lib }:
+{
+  writeShellApplication,
+  writeText,
+  foot,
+  cozette,
+  fontconfig,
+  lib,
+}:
 
 # Helper that builds a kiosk program suitable for `mininix.kiosk.package`
 # in gui mode: spawns a terminal (default foot) running the supplied

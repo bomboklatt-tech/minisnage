@@ -1,4 +1,9 @@
-{ inputs, lib, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
@@ -12,7 +17,7 @@
   # errors trying to find them. We don't need any of that hardware
   # support for a kiosk RPi5.
   # hardware.enableAllHardware = lib.mkForce false;
-   boot.initrd.allowMissingModules = true;
+  boot.initrd.allowMissingModules = true;
 
   # RPi 5 boots via the EEPROM-based firmware loader (no u-boot needed).
   # The firmware partition needs RPi vendor blobs and bcm2712 DTBs.
