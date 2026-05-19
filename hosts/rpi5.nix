@@ -1,39 +1,28 @@
 {
   inputs,
-  lib,
   pkgs,
   ...
 }:
 
+let
+  rpiFw = "${pkgs.raspberrypifw}/share/raspberrypi/boot";
+in
 {
   imports = [
-    ../modules/image-sd.nix
+    ../modules/image/rpi-firmware.nix
     inputs.nixos-hardware.nixosModules.raspberry-pi-5
   ];
 
-  # sd-image.nix sets `hardware.enableAllHardware = true` which dumps a
-  # huge module list (dw-hdmi, aic79xx, mptspi, ...) into the initrd.
-  # The linux-rpi kernel doesn't carry most of those, so modules-shrunk
-  # errors trying to find them. We don't need any of that hardware
-  # support for a kiosk RPi5.
-  # hardware.enableAllHardware = lib.mkForce false;
+  image.repart.name = "mininix-rpi5";
   boot.initrd.allowMissingModules = true;
 
-  # RPi 5 boots via the EEPROM-based firmware loader (no u-boot needed).
-  # The firmware partition needs RPi vendor blobs and bcm2712 DTBs.
-  sdImage.populateFirmwareCommands =
-    let
-      configTxt = pkgs.writeText "config.txt" ''
-        [all]
-        arm_64bit=1
-        enable_uart=1
-        kernel=Image
-      '';
-    in
-    ''
-      (cd ${pkgs.raspberrypifw}/share/raspberrypi/boot && \
-        cp bootcode.bin fixup*.dat start*.elf $NIX_BUILD_TOP/firmware/ 2>/dev/null || true)
-      cp ${pkgs.raspberrypifw}/share/raspberrypi/boot/bcm2712-rpi-5-b.dtb firmware/ || true
-      cp ${configTxt} firmware/config.txt
-    '';
+  # RPi5 EEPROM uses GPT and reads config.txt from the FAT partition.
+  # modules/image/rpi-firmware.nix bakes Image / initramfs / cmdline.txt /
+  # config.txt at the FAT root; the host's job is the matching DTB.
+  image.repart.partitions."10-boot".contents = {
+    "/bcm2712-rpi-5-b.dtb".source = "${rpiFw}/bcm2712-rpi-5-b.dtb";
+  };
+
+  # SD/eMMC media on RPi appears as /dev/mmcblk0.
+  boot.initrd.systemd.repart.device = "/dev/mmcblk0";
 }

@@ -109,6 +109,7 @@
                 "vm"
                 "vm-uboot"
                 "rpi4"
+                "rpi5"
                 "rockpro64"
               ];
             in
