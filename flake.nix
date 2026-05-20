@@ -147,9 +147,9 @@
               pkgs.coreutils
             ];
             text = ''
-              IMG=$(find ${vmImage} -name '*.raw' | head -1)
+              IMG=$(find ${vmImage} -name '*.img' | head -1)
               if [ -z "$IMG" ]; then
-                echo "No .raw image found in ${vmImage}" >&2
+                echo "No .img image found in ${vmImage}" >&2
                 exit 1
               fi
 
@@ -186,9 +186,9 @@
               pkgs.coreutils
             ];
             text = ''
-              IMG=$(find ${vmUbootImage} -name '*.raw' | head -1)
+              IMG=$(find ${vmUbootImage} -name '*.img' | head -1)
               if [ -z "$IMG" ]; then
-                echo "No .raw image found in ${vmUbootImage}" >&2
+                echo "No .img image found in ${vmUbootImage}" >&2
                 exit 1
               fi
 

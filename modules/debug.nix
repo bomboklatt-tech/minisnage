@@ -1,6 +1,11 @@
 # Debug overlay - applies when config.mininix.debug = true.
 # Intended for VM iteration; should not be active in production images.
-{ lib, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 lib.mkIf config.mininix.debug {
   # Drop straight into a root shell when boot fails (no password prompt
@@ -16,4 +21,19 @@ lib.mkIf config.mininix.debug {
     PermitRootLogin = lib.mkForce "yes";
     PasswordAuthentication = lib.mkForce true;
   };
+
+  # Diagnostics available in the initrd emergency shell. When the
+  # /nix/store mount fails the only binaries reachable are those baked
+  # into the initrd, so the standard partition / block / text utilities
+  # have to be inlined here. Cost is paid only when debug = true.
+  #   gptfdisk:   gdisk, sgdisk, cgdisk
+  #   util-linux: dmesg, lsblk, blkid, blockdev, partx, fdisk
+  #   parted:     partprobe (forces BLKRRPART so the kernel re-parses GPT)
+  #   gnugrep:    grep / egrep / fgrep
+  boot.initrd.systemd.initrdBin = [
+    pkgs.gptfdisk
+    pkgs.util-linux
+    pkgs.parted
+    pkgs.gnugrep
+  ];
 }

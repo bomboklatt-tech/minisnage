@@ -21,21 +21,19 @@ in
     (modulesPath + "/image/repart.nix")
   ];
 
-  # `system.build.imageFinal` is what the flake consumes. With an empty
-  # postProcess this is just `system.build.image` straight from
-  # image.repart; with one it's a wrapping derivation that runs the
-  # snippet against the raw .img (used for the RockPro64 u-boot dd).
-  system.build.imageFinal =
-    if postProcess == "" then
-      config.system.build.image
-    else
-      pkgs.runCommand config.image.repart.name { } ''
-        mkdir -p "$out"
-        cp -L ${config.system.build.image}/*.raw "$out/"
-        chmod -R u+w "$out"
-        raw=$(find "$out" -name '*.raw' | head -1)
-        ${postProcess}
-      '';
+  # `system.build.imageFinal` is what the flake consumes. We always wrap
+  # so the artifact lands as `${name}.img` (drag-and-drop friendly for
+  # most flashers) rather than the upstream `.raw`, and so any host
+  # postProcess (e.g. the RockPro64 u-boot dd) gets a single uniform
+  # `$raw` shell variable pointing at the renamed file.
+  system.build.imageFinal = pkgs.runCommand "${config.image.repart.name}-img" { } ''
+    mkdir -p "$out"
+    src=$(find ${config.system.build.image} -name '*.raw' | head -1)
+    cp -L "$src" "$out/${config.image.repart.name}.img"
+    chmod u+w "$out/${config.image.repart.name}.img"
+    raw="$out/${config.image.repart.name}.img"
+    ${postProcess}
+  '';
 
   image.repart.partitions."20-store" = {
     storePaths = [ config.system.build.toplevel ];
@@ -65,19 +63,26 @@ in
   # times out waiting for the device.
   boot.initrd.kernelModules = [ "loop" ];
 
-  # Force a udev retrigger on the block subsystem after systemd-repart
-  # finishes. systemd-repart only re-emits uevents for partitions it
-  # touches (the ones it creates or resizes); pre-existing partitions
-  # like the nix-store squashfs keep whatever udev state they had from
-  # the initial kernel probe. On slow MMC controllers (seen on rk3399)
-  # the initial probe can race repart's GPT rewrite and the
-  # by-partlabel/nix-store symlink never lands, so the mount unit waits
-  # forever. A retrigger + settle deterministically restores the
-  # symlink before initrd-fs.target tries the mount.
+  # Reconcile kernel partition table with on-disk GPT after
+  # systemd-repart finishes. Observed on rk3399 with a large squashfs
+  # closure: systemd-repart writes a correct 4-entry GPT, but the
+  # kernel's in-memory partition table is left with the pre-existing
+  # nix-store entry deleted via BLKPG_DEL_PARTITION and never re-added,
+  # while the new var/home entries are added cleanly. `partprobe` issues
+  # BLKRRPART which forces a full re-parse from on-disk GPT, restoring
+  # every slot. The follow-up `udevadm trigger`/`settle` ensures the
+  # by-partlabel symlinks land before initrd-fs.target tries the mount.
+  #
+  # `pkgs.parted` is pulled into the initrd via storePaths so the unit's
+  # absolute path reference is valid.
+  #
+  # wantedBy + `-` prefixed ExecStarts so any single step failing
+  # (partprobe on a transient EBUSY, udevadm settle timing out) is
+  # best-effort and never tanks initrd-fs.target.
+  boot.initrd.systemd.storePaths = [ pkgs.parted ];
+
   boot.initrd.systemd.services.udev-retrigger-block = {
-    description = "Re-trigger udev for block devices after systemd-repart";
-    # wantedBy + `-` prefixed ExecStarts so a slow/timing-out udevadm
-    # settle is best-effort and never tanks initrd-fs.target.
+    description = "Re-parse GPT and re-trigger udev after systemd-repart";
     wantedBy = [ "initrd-fs.target" ];
     after = [ "systemd-repart.service" ];
     before = [ "initrd-fs.target" ];
@@ -86,6 +91,7 @@ in
       Type = "oneshot";
       RemainAfterExit = true;
       ExecStart = [
+        "-${pkgs.parted}/bin/partprobe ${config.boot.initrd.systemd.repart.device}"
         "-${config.boot.initrd.systemd.package}/bin/udevadm trigger --action=change --subsystem-match=block"
         "-${config.boot.initrd.systemd.package}/bin/udevadm settle --timeout=30"
       ];

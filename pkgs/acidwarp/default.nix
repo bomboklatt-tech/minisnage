@@ -33,7 +33,7 @@ mkGuiTerminalKiosk {
   name = "acidwarp";
   runtimeInputs = [ dosbox-staging ];
   text = ''
-  export SDL_VIDEODRIVER=wayland
-  dosbox-staging -conf ${conf}
+    export SDL_VIDEODRIVER=wayland
+    dosbox-staging -conf ${conf}
   '';
 }
