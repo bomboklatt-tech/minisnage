@@ -15,6 +15,10 @@ in
 
   image.repart.name = "mininix-rpi5";
   boot.initrd.allowMissingModules = true;
+  boot.initrd.kernelModules = [
+    "vc4"
+    "v3d"
+  ];
 
   # RPi5 EEPROM uses GPT and reads config.txt from the FAT partition.
   # modules/image/rpi-firmware.nix bakes Image / initramfs / cmdline.txt /

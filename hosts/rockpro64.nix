@@ -85,4 +85,6 @@
     "console=ttyS2,1500000n8"
     # "earlycon=uart8250,mmio32,0xff1a0000"
   ];
+  boot.initrd.kernelModules = [ "panfrost" ];
+
 }

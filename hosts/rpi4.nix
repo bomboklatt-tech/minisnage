@@ -26,7 +26,10 @@ in
     ../modules/image/extlinux.nix
     inputs.nixos-hardware.nixosModules.raspberry-pi-4
   ];
-
+  boot.initrd.kernelModules = [
+    "vc4"
+    "v3d"
+  ];
   image.repart.name = "mininix-rpi4";
 
   # /boot is the FAT partition declared by modules/image/extlinux.nix.

@@ -53,6 +53,6 @@
   ];
 
   # No default editor.
-  programs.nano.enable = false;
+  programs.nano.enable = true;
   systemd.enableEmergencyMode = false;
 }
